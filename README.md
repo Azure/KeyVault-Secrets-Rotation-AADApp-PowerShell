@@ -47,9 +47,9 @@ Steps to add Graph API permissions to Azure Function:
 > To provide Graph API Permission you need to be Global Administrator in Azure Active Directory
 
 ```powershell
-$TenantID = '7010fa05-d961-4e3e-b8d7-8f37bf5ecfe0'
+$TenantID = '<Directory Tenant Id>'
 Connect-AzureAD -TenantId $TenantID
-$functionIdentityObjectId ='9043487a-cf99-430d-a845-aa7b8af345e0'
+$functionIdentityObjectId ='<Azure Function Identity Object Id>'
 $graphAppId = '00000003-0000-0000-c000-000000000000' # This is a well-known Microsoft Graph application ID.
 $graphApiAppRoleName = 'Application.ReadWrite.All'
 $graphServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$graphAppId'"
