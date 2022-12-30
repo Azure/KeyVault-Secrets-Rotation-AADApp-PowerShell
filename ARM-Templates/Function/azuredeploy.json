@@ -89,7 +89,7 @@
         "functionStorageAccountName": "[concat(uniquestring(parameters('functionAppName')), 'fnappstrg')]",
         "eventSubscriptionName": "[concat(parameters('functionAppName'),'-',parameters('secretName'))]",
         "appServiceSKU":"[if(equals(parameters('appServicePlanType'),'Consumption Plan'),'Y1','P1V2')]",
-        "repoURL": "https://github.com/jlichwa/KeyVault-Secrets-Rotation-IdentityPlatform-ClientSecret-PowerShell.git",
+        "repoURL": "https://github.com/Azure/KeyVault-Secrets-Rotation-AADApp-PowerShell.git",
          "ProviderResourceId":"[parameters('aadAppObjectId')]"
     },
     "resources": [
