@@ -2,20 +2,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "[ServiceType]RG": {
-            "defaultValue": "[resourceGroup().name]",
-            "type": "String",
-            "metadata": {
-                "description": "The name of the resource group where [ServiceType] with keys to rotate has deployed."
-            }
-        },
-        "[ServiceType]Name": {
-            "defaultValue": "",
-            "type": "String",
-            "metadata": {
-                "description": "The name of the [ServiceType] with keys to rotate."
-            }
-        },
+       
         "keyVaultRG": {
             "defaultValue": "[resourceGroup().name]",
             "type": "String",
@@ -31,14 +18,14 @@
             }
         },
         "functionAppName": {
-            "defaultValue": "[concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp')]",
+            "defaultValue": "[concat(resourceGroup().name, '-AADApp-clientsecret-rotation-fnapp')]",
             "type": "String",
             "metadata": {
-                "description": "The name of the function app that you wish to use."
+                "description": "The name of the function app that you wish to create."
             }
-		},
+        },
 		"secretName": {
-            "defaultValue": "[ServiceType]Key2",
+            "defaultValue": "AADAppClientSecret2",
             "type": "String",
             "metadata": {
                 "description": "The name of the secret where [ServiceType] keys are stored."
@@ -51,8 +38,30 @@
                 "description": "Add [ServiceType] key to key vault. New secret is created with key as value"
             }
         },
+        "aadAppId": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "Object Id of the AAD App with client secrets to rotate."
+            }
+        },
+        "clientSecretId": {
+            "defaultValue": "",
+            "type": "SecureString",
+            "metadata": {
+                "description": "The id of the client secret to store."
+            }
+        },
+        "clientSecretValue": {
+            "defaultValue": "",
+            "type": "SecureString",
+            "metadata": {
+                "description": "The value of the client secret to store."
+            }
+        },
         "secretExpirationDateUnixTime": {
             "type": "int",
+            "defaultValue": 0,
             "metadata": {
                 "description": "Expiry date in seconds since 1970-01-01T00:00:00Z."
             }
@@ -67,8 +76,8 @@
        
     },
     "variables": {
-		"eventSubscriptionName": "[concat(parameters('functionAppName'),'-',parameters('secretName'))]"
-		
+		"eventSubscriptionName": "[concat(parameters('functionAppName'),'-',parameters('secretName'))]",
+        "ProviderResourceId":"[parameters('aadAppObjectId')]"
     },
     "resources": [
         {
@@ -110,56 +119,26 @@
                                 }
                             }
                         },
-                        //EXAMPLE OF STORAGE ACCOUNT KEY DEPLOYMENT
-                        // {
-                        //     "type": "Microsoft.KeyVault/vaults/secrets",
-                        //     "apiVersion": "2019-09-01",
-                        //     "condition": "[parameters('deploySecretWith[ServiceType]KeyToKeyVault')]",
-                        //     "name": "[concat(parameters('keyVaultName'), '/', parameters('secretName'))]",
-                        //     "location": "[resourceGroup().location]",
-                        //     "dependsOn": [],
-                        //     "tags": {
-                        //         "ValidityPeriodDays":"[parameters('secretValidityPeriodDays')]",
-                        //         "CredentialId":"key1",
-                        //         "ProviderAddress":"[variables('ProviderResourceId')]"
-                        //     },
-                        //     "properties": {
-                        //         "value": "[listKeys(variables('ProviderResourceId'), '2019-04-01').keys[0].value]",
-                        //         "attributes": {
-                        //             "exp": "[parameters('secretExpirationDateUnixTime')]"
-                        //         }
-                        //     }
-                        // }
                         {
-                            "name": "grant-access",
-                            "type": "Microsoft.Resources/deployments",
-                            "apiVersion": "2019-10-01",
-                            "subscriptionId": "[subscription().subscriptionId]",
-                            "resourceGroup": "[parameters('[ServiceType]RG')]",
+                            "type": "Microsoft.KeyVault/vaults/secrets",
+                            "apiVersion": "2019-09-01",
+                            "condition": "[parameters('deploySecretWithClientSecretToKeyVault')]",
+                            "name": "[concat(parameters('keyVaultName'), '/', parameters('secretName'))]",
+                            "location": "[resourceGroup().location]",
                             "dependsOn": [],
+                            "tags": {
+                                "ValidityPeriodDays":"[parameters('secretValidityPeriodDays')]",
+                                "CredentialId":"[parameters('clientSecretId')]",
+                                "ProviderAddress":"[variables('ProviderResourceId')]"
+                            },
                             "properties": {
-                                "mode": "Incremental",
-                                "template": {
-                                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                                    "contentVersion": "1.0.0.0",
-                                    "resources": [
-                                        {
-                            //EXAMPLE OF GRANTING ACCESS TO STORAGE
-                            //                 "type": "Microsoft.Storage/storageAccounts/providers/roleAssignments",
-                            //                 "apiVersion": "2018-09-01-preview",
-                            //                 "name": "[concat(parameters('storageAccountName'), '/Microsoft.Authorization/', guid(concat(parameters('storageAccountName'),reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'2019-08-01', 'Full').identity.principalId)))]",
-                            //                 "dependsOn": [
-                                            
-                            //                 ],
-                            //                 "properties": {
-                            //                     "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '81a9662b-bebf-436f-a333-f67b29880f12')]",
-                            //                     "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'2019-08-01', 'Full').identity.principalId]"
-                            //                 }
-                                        }
-                                    ]
+                                "value": "[parameters('clientSecretValue')]",
+                                "attributes": {
+                                    "exp": "[parameters('secretExpirationDateUnixTime')]"
                                 }
                             }
                         }
+                       
                     ]
                 }
             }

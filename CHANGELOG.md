@@ -1,18 +1,18 @@
-## Key Vault Rotation Function for [ServiceType] Changelog
+## Key Vault Rotation Function for AAD App Client Secret Changelog
 
-<a name="Keyvault-Rotation-[ServiceType]-PowerShell"></a>
+<a name="Keyvault-Rotation-AADAppClientSecret-PowerShell"></a>
 
-# Keyvault-Rotation-[ServiceType]-PowerShell (2020-12-22)
+# Keyvault-Secrets-Rotation-AADApp-PowerShell (2022-12-30)
 
 *Features*
 
-* Rotation function for [ServiceType] key triggered by Event Grid (AKV[ServiceType]Rotation)
+* Rotation function for AAD App ClientSecret triggered by Event Grid (AKVAADAppClientSecretRotation)
 
-* Rotation function for [ServiceType] key triggered by HTTP call(AKV[ServiceType]RotationHttp)
+* Rotation function for AAD App ClientSecret triggered by HTTP call(AKVAADAppClientSecretRotationHttp)
 
 * ARM template for function deployment
 
-* ARM template for adding [ServiceType] key to existing function
+* ARM template for adding AADAppClientSecret to existing function
 
 *Bug Fixes*
 
