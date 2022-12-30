@@ -1,0 +1,3 @@
+@echo off
+echo Deploying Functions ...
+xcopy "%DEPLOYMENT_SOURCE%\Function" %DEPLOYMENT_TARGET% /Y /S

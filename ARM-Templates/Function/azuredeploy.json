@@ -1,0 +1,305 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+          "[ServiceType]RG": {
+            "defaultValue": "[resourceGroup().name]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the resource group where [ServiceType] with keys to rotate has deployed."
+            }
+        },
+        "[ServiceType]Name": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the [ServiceType] with keys to rotate."
+            }
+        },
+        "keyVaultRG": {
+            "defaultValue": "[resourceGroup().name]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the resource group where key vault has deployed."
+            }
+        },
+        "keyVaultName": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the existing key vault where secrets are stored."
+            }
+        },
+        "appServicePlanType": {
+			"type": "string",
+			"allowedValues": [
+                "Consumption Plan",
+                "Premium Plan"
+			],
+			"defaultValue": "Consumption Plan",
+			"metadata": {
+			"description": "The type of App Service hosting plan. Premium must be used to access key vaults behind firewall."
+			}
+		},
+        "functionAppName": {
+            "defaultValue": "[concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp')]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the function app that you wish to create."
+            }
+        },
+        "secretName": {
+            "defaultValue": "[ServiceType]Key",
+            "type": "String",
+            "metadata": {
+                "description": "The name of the secret where [ServiceType] keys are stored."
+            }
+        },
+        "deploySecretWith[ServiceType]KeyToKeyVault": {
+            "defaultValue": "true",
+            "type": "bool",
+            "metadata": {
+                "description": "Add [ServiceType] key to key vault. New secret is created with key as value"
+            }
+        },
+        "secretExpirationDateUnixTime": {
+            "type": "int",
+            "metadata": {
+                "description": "Expiry date in seconds since 1970-01-01T00:00:00Z."
+            }
+        },
+		"secretValidityPeriodDays": {
+            "defaultValue": 90,
+            "type": "int",
+            "metadata": {
+                "description": "Secret validity period days. It is used to calculate expiration date for a secret after rotation"
+            }
+        }
+       
+    },
+    "variables": {
+        "functionStorageAccountName": "[concat(uniquestring(parameters('functionAppName')), 'fnappstrg')]",
+        "eventSubscriptionName": "[concat(parameters('functionAppName'),'-',parameters('secretName'))]",
+        "appServiceSKU":"[if(equals(parameters('appServicePlanType'),'Consumption Plan'),'Y1','P1V2')]",
+        //"repoURL": i.e. "https://github.com/Azure/KeyVault-Secrets-Rotation-StorageAccount-PowerShell.git"
+        //"ProviderResourceId": i.e. "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('StorageAccountRG'),'/providers/Microsoft.Storage/storageAccounts/',parameters('storageAccountName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('functionStorageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage"
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "name": "[concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp-plan')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "[variables('appServiceSKU')]"
+            },
+            "properties": {
+                "name": "[concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp-plan')]"
+               
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2018-11-01",
+            "name": "[parameters('functionAppName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp-plan'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName'))]"
+            ],
+            "kind": "functionapp",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "enabled": true,
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms',concat(resourceGroup().name, '-[ServiceType]-rotation-fnapp-plan'))]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName')), '2019-06-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~3"
+                        },
+                        {
+                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                            "value": "powershell"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageAccountName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName')), '2019-06-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTSHARE",
+                            "value": "[toLower(parameters('functionAppName'))]"
+                        },
+                        {
+                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                            "value": "~10"
+                        },
+                        {
+                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            "value": "[reference(resourceId('microsoft.insights/components', parameters('functionAppName')), '2018-05-01-preview').InstrumentationKey]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "sourcecontrols",
+                    "apiVersion": "2018-11-01",
+                    "name": "web",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/Sites', parameters('functionAppName'))]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "[variables('repoURL')]",
+                        "branch": "main",
+                        "IsManualIntegration": true
+                    }
+                }
+            ]
+        },
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2018-05-01-preview",
+            "name": "[parameters('functionAppName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "[concat('hidden-link:', resourceId('Microsoft.Web/sites', parameters('functionAppName')))]": "Resource"
+            },
+            "properties": {
+                "ApplicationId": "[parameters('functionAppName')]",
+                "Request_Source": "IbizaWebAppExtensionCreate"
+            }
+        },
+        {
+            "name": "kv-event-subscription-and-grant-access-and-secret-deployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "subscriptionId": "[subscription().subscriptionId]",
+            "resourceGroup": "[parameters('keyVaultRG')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]",
+                "[concat(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'/sourcecontrols/web')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.KeyVault/vaults/accessPolicies",
+                            "name": "[concat(parameters('keyVaultName'), '/add')]",
+                            "apiVersion": "2019-09-01",
+                            "properties": {
+                                "accessPolicies": [
+                                    {
+                                        "tenantId": "[subscription().tenantId]",
+                                        "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'2019-08-01', 'Full').identity.principalId]",
+                                        "permissions": {
+                                            "secrets": [
+                                                "Get",
+                                                "List",
+                                                "Set"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.KeyVault/vaults/providers/eventSubscriptions",
+                            "apiVersion": "2020-01-01-preview",
+                            "name": "[concat(parameters('keyVaultName'),'/Microsoft.EventGrid/',variables('eventSubscriptionName'))]",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "destination": {
+                                    "endpointType": "AzureFunction",
+                                    "properties": {
+                                        "maxEventsPerBatch": 1,
+                                        "preferredBatchSizeInKilobytes": 64,
+                                        "resourceId": "[concat(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'/functions/AKV[ServiceType]Rotation')]"
+                                    }
+                                },
+                                "filter": {
+                                    "subjectBeginsWith": "[parameters('secretName')]",
+                                    "subjectEndsWith": "[parameters('secretName')]",
+                                    "includedEventTypes": [ "Microsoft.KeyVault.SecretNearExpiry" ]
+
+                                }
+                            }
+                        },
+                        //EXAMPLE OF STORAGE ACCOUNT KEY DEPLOYMENT
+                        // {
+                        //     "type": "Microsoft.KeyVault/vaults/secrets",
+                        //     "apiVersion": "2019-09-01",
+                        //     "condition": "[parameters('deploySecretWithStorageAccountKeyToKeyVault')]",
+                        //     "name": "[concat(parameters('keyVaultName'), '/', parameters('secretName'))]",
+                        //     "location": "[resourceGroup().location]",
+                        //     "dependsOn": [],
+                        //     "tags": {
+                        //         "ValidityPeriodDays":"[parameters('secretValidityPeriodDays')]",
+                        //         "CredentialId":"key1",
+                        //         "ProviderAddress":"[variables('ProviderResourceId')]"
+                        //     },
+                        //     "properties": {
+                        //         "value": "[listKeys(variables('ProviderResourceId'), '2019-04-01').keys[0].value]",
+                        //         "attributes": {
+                        //             "exp": "[parameters('secretExpirationDateUnixTime')]"
+                        //         }
+                        //     }
+                        // }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "grant-access",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "subscriptionId": "[subscription().subscriptionId]",
+            "resourceGroup": "[parameters('[ServiceType]RG')]",
+            "dependsOn": [
+                 "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+            //EXAMPLE OF GRANTING ACCESS TO STORAGE
+            //                 "type": "Microsoft.Storage/storageAccounts/providers/roleAssignments",
+            //                 "apiVersion": "2018-09-01-preview",
+            //                 "name": "[concat(parameters('storageAccountName'), '/Microsoft.Authorization/', guid(concat(parameters('storageAccountName'),reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'2019-08-01', 'Full').identity.principalId)))]",
+            //                 "dependsOn": [
+                            
+            //                 ],
+            //                 "properties": {
+            //                     "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '81a9662b-bebf-436f-a333-f67b29880f12')]",
+            //                     "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')),'2019-08-01', 'Full').identity.principalId]"
+            //                 }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
