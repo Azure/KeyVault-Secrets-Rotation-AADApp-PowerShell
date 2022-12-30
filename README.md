@@ -1,22 +1,16 @@
 # KeyVault-Secrets-Rotation-AADApp-PowerShell
 
+Functions regenerate individual key (alternating between two keys) in AAD App client secret and add regenerated client secret to Key Vault as new version of the same secret.
 
-## Contributing
+## Features
+
+This project framework provides the following features:
 
 * Rotation function for AAD App client secret triggered by Event Grid (AKVAADAppClientSecretRotation)
 
 * Rotation function for AAD App client secret key triggered by HTTP call (AKVAADAppClientSecretRotationHttp)
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+* ARM template for function deployment with secret deployment (optional)
 
 * ARM template for adding AAD App client secret to existing function with secret deployment (optional)
 
@@ -53,9 +47,9 @@ Steps to add Graph API permissions to Azure Function:
 > To provide Graph API Permission you need to be Global Administrator in Azure Active Directory
 
 ```powershell
-$TenantID = '<Your TenantId>'
+$TenantID = '7010fa05-d961-4e3e-b8d7-8f37bf5ecfe0'
 Connect-AzureAD -TenantId $TenantID
-$functionIdentityObjectId ='<Your Function Managed Identity Object Id'
+$functionIdentityObjectId ='9043487a-cf99-430d-a845-aa7b8af345e0'
 $graphAppId = '00000003-0000-0000-c000-000000000000' # This is a well-known Microsoft Graph application ID.
 $graphApiAppRoleName = 'Application.ReadWrite.All'
 $graphServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$graphAppId'"
@@ -80,25 +74,6 @@ You can find example for Storage Account rotation in tutorial below:
 Youtube:
 https://youtu.be/qcdVbXJ7e-4
 
+**Project template information**:
 
-## Contributing
-
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+This project was generated using [this](https://github.com/Azure/KeyVault-Secrets-Rotation-Template-PowerShell) template. You can find instructions [here](https://github.com/Azure/KeyVault-Secrets-Rotation-Template-PowerShell/blob/main/Project-Template-Instructions.md)
