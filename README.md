@@ -58,12 +58,6 @@ $graphApiAppRole = $graphServicePrincipal.AppRoles | Where-Object {$_.Value -eq 
 # Assign the role to the managed identity.
 New-AzureADServiceAppRoleAssignment -ObjectId $functionIdentityObjectId -PrincipalId $functionIdentityObjectId -ResourceId $graphServicePrincipal.ObjectId -Id $graphApiAppRole.Id
 
-
-New-AzureADServiceAppRoleAssignment `
-    -ObjectId $managedIdentityObjectId `
-    -Id $appRoleId `
-    -PrincipalId $managedIdentityObjectId `
-    -ResourceId $serverServicePrincipalObjectId
 ```
 
 ## Demo
