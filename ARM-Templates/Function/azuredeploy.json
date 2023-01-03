@@ -50,7 +50,7 @@
         },
         "aadAppObjectId": {
             "defaultValue": "",
-            "type": "String",
+            "type": "SecureString",
             "metadata": {
                 "description": "Object Id of the AAD App with client secrets to rotate."
             }
