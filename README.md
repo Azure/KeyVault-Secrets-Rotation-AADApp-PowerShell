@@ -66,7 +66,7 @@ You can find example for Storage Account rotation in tutorial below:
 [Automate the rotation of a secret for resources that have two sets of authentication credentials](https://docs.microsoft.com/azure/key-vault/secrets/tutorial-rotation-dual)
 
 Youtube:
-https://youtu.be/qcdVbXJ7e-4
+https://www.youtube.com/watch?v=JMjwBhnCAGk
 
 **Project template information**:
 
