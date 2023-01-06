@@ -20,7 +20,7 @@ Functions using following information stored in secret as tags:
 
 * $secret.Tags["ValidityPeriodDays"] - number of days, it defines expiration date for new secret
 * $secret.Tags["CredentialId"] - AAD App Client Secret credential id
-* $secret.Tags["ProviderAddress"] - AAD App App Resource Id
+* $secret.Tags["ProviderAddress"] - AAD App App Object Id
 
 You can deploy vault secret with above tags and AAD App client secret as value or add those tags to existing secret with Indentity Platform client secret value. For automated rotation expiry date will also be required - key vault triggers 'SecretNearExpiry' event 30 days before expiry.
 [ServiceType]
