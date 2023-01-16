@@ -48,15 +48,15 @@ Steps to add Graph API permissions to Azure Function:
 
 ```powershell
 $TenantID = '<Directory Tenant Id>'
-Connect-AzureAD -TenantId $TenantID
+Connect-MgGraph -TenantId $TenantID
 $functionIdentityObjectId ='<Azure Function Identity Object Id>'
 $graphAppId = '00000003-0000-0000-c000-000000000000' # This is a well-known Microsoft Graph application ID.
 $graphApiAppRoleName = 'Application.ReadWrite.All'
-$graphServicePrincipal = Get-AzureADServicePrincipal -Filter "appId eq '$graphAppId'"
+$graphServicePrincipal =  Get-MgServicePrincipal -Filter "appId eq '$graphAppId'"
 $graphApiAppRole = $graphServicePrincipal.AppRoles | Where-Object {$_.Value -eq $graphApiAppRoleName -and $_.AllowedMemberTypes -contains "Application"}
 
 # Assign the role to the managed identity.
-New-AzureADServiceAppRoleAssignment -ObjectId $functionIdentityObjectId -PrincipalId $functionIdentityObjectId -ResourceId $graphServicePrincipal.ObjectId -Id $graphApiAppRole.Id
+New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $functionIdentityObjectId -PrincipalId $functionIdentityObjectId -ResourceId $graphServicePrincipal.ObjectId -Id $graphApiAppRole.Id
 
 ```
 
